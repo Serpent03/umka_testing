@@ -1,0 +1,153 @@
+UMKa -- User-Mode KolibriOS developer tools
+===========================================
+
+This is a common project for a set of KolibriOS developer tools which are based
+on original KolibriOS kernel code wrapped and hacked as to run in the UNIX
+programming environment. The idea is to make userspace UNIX tools that use as
+much unchanged KolibriOS kernel source as possible to run, test and debug
+architecture-independent parts of the kernel in your favorite developer
+environment.
+
+What works now:
+ * block layer (disk, cache, partition, MBR, GPT),
+ * file systems except iso9660 (fat*, exfat, ext*, xfs),
+ * UI and graphics (geometric primitives, windows, winmap, cursors),
+ * basic network (configuration, ping replies),
+ * interrupts (via signals),
+ * threads and processes,
+ * scheduler,
+ * slab allocator,
+ * events,
+ * synchronization primitives,
+ * unpacker,
+ * string functions,
+ * other minor functions.
+
+
+umka_shell
+----------
+
+is an interactive shell with commands that are wrappers around KolibriOS kernel
+syscalls and other internal functions. It can also be used for automated testing
+by feeding it a file of commands instead of typing them.
+
+Example:
+    $ umka_shell < mytest.t
+
+
+umka_fuse
+---------
+
+is like umka_shell above but commands are translated from FUSE calls, not
+entered manually or read from a file. Can *potentially* be used to run xfstests
+(cross-fs-tests) and automated tests against reference FS implementation.
+
+
+umka_os
+-------
+
+is KolibriOS kernel running main loop (osloop), scheduler and all the threads
+including network stack.
+
+
+tools
+-----
+
+mkdirrange - make directories with names in range
+
+mkfilepattern - make a file with contents of specific pattern
+
+
+BUILD
+-----
+
+Linux:
+
+$ KOLIBRIOS=/path/to/kolibrios HOST=linux CC=gcc make
+
+/path/to/kolibrios is where you checked out 'svn co svn://kolibrios.org'.
+
+Windows:
+
+Same but specify HOST=windows and your favourite C compiler.
+
+
+Architecture
+------------
+
+Kernel services are replaced with stubs, wrappers around userspace
+implementation or libc calls. Block devices are emulated with regular files.
+Framebuffer can be dumped to disk as image file.
+
+
+Testing
+-------
+
+# Run all the tests
+
+    $ HOST=linux make -B
+
+# Copy ACPI tables and PCI configs
+
+    # cp --parents /sys/firmware/acpi/tables/?SDT* /sys/bus/pci/devices/*/config .
+
+# Manage tap device
+
+    # ip tuntap add dev tap0 mode tap
+    # ip link set tap0 address 00:11:00:00:00:00
+    # ip addr add 10.50.0.1/24 dev tap0
+    # ip link set up dev tap0
+    # ip tuntap del dev tap0 mode tap
+
+
+Troubleshooting
+---------------
+
+# umka_os
+
+To create tap devices.
+
+    # setcap cap_net_admin+ep umka_os
+
+To load apps at 0 address.
+
+    # sysctl -w vm.mmap_min_addr=0
+
+Allow reading process_vm_readv syscall.
+
+    # sysctl -w kernel.yama.ptrace_scope=0
+
+Insert msr linux kernel module to collect coverage.
+
+    # modprobe msr
+
+
+Links & Acknowledgements
+------------------------
+
+[1] Filesystem in Userspace
+    https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/fuse
+
+[2] Filesystem in Userspace library
+    https://github.com/libfuse/libfuse
+
+[3] LodePNG by Lode Vandevenne
+    https://lodev.org/lodepng/
+
+[4] Optparse by Christopher Wellons
+    https://github.com/skeeto/optparse
+
+[5] Universal TUN/TAP device driver by Maxim Krasnyansky and others
+    https://www.kernel.org/doc/html/v5.12/networking/tuntap.html
+
+[6] Isocline by Daan Leijen
+    https://github.com/daanx/isocline
+
+[7] em_inflate by Emmanuel Marty
+    https://github.com/emmanuel-marty/em_inflate
+
+[8] qemu-nbd by Anthony Liguori and others
+    https://www.qemu.org/docs/master/tools/qemu-nbd.html
+
+[9] Simple DirectMedia Layer library aka SDL2
+    https://libsdl.org
